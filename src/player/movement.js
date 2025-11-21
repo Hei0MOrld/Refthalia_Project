@@ -7,8 +7,6 @@ import * as THREE from 'three';
 import { camera } from '../core/scene.js';
 import * as Input from '../core/input.js';
 import { Player } from './playerModel.js';
-import { applyGroundCollision, applyObjectCollision } from './collision.js';
-import { getHeight } from '../world/terrain.js';
 // 地面
 applyGroundCollision(player, getHeight);
 
