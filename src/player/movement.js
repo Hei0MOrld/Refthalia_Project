@@ -7,11 +7,7 @@ import * as THREE from 'three';
 import { camera } from '../core/scene.js';
 import * as Input from '../core/input.js';
 import { Player } from './playerModel.js';
-// 地面
-applyGroundCollision(player, getHeight);
 
-// 木や岩など
-applyObjectCollision(player);
 
 
 // ---------------------------------------
