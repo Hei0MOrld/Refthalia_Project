@@ -1,6 +1,6 @@
 // ======================================
 // Refthalia - movement.js
-// プレイヤー移動・重力・TPS対応
+// 主人公の移動処理（TPS & 地形同期）
 // ======================================
 
 import * as THREE from 'three';
@@ -21,12 +21,15 @@ const RUN_SPEED = 11;
 const JUMP_POWER = 10;
 const GRAVITY = 28;
 
+// プレイヤーの足元高さ（モデルの大きさと合わせる）
+const FOOT_OFFSET = 0.25;
+
 // ======================================
 // プレイヤー生成（main.js から呼ばれる）
 // ======================================
 export function spawnPlayer() {
     player = new Player();
-    player.position.set(0, 5, 0);   // 少し上からスポーン
+    player.position.set(0, 5, 0); // → 高めにスポーンしてもOK
     return player;
 }
 
@@ -46,17 +49,17 @@ export function updatePlayer(delta) {
     // 移動ベクトル
     const move = new THREE.Vector3();
 
-    // カメラの向き（水平だけを使用）
+    // カメラの方向（水平だけ）
     const camDir = new THREE.Vector3();
     camera.getWorldDirection(camDir);
     camDir.y = 0;
     camDir.normalize();
 
-    const camRight = new THREE.Vector3()
-        .crossVectors(camDir, new THREE.Vector3(0, 1, 0))
-        .normalize();
+    const camRight = new THREE.Vector3().crossVectors(
+        camDir,
+        new THREE.Vector3(0, 1, 0)
+    ).normalize();
 
-    // 移動入力
     if (forward) move.add(camDir);
     if (back)    move.sub(camDir);
     if (left)    move.sub(camRight);
@@ -65,33 +68,34 @@ export function updatePlayer(delta) {
     // 移動処理
     if (move.lengthSq() > 0) {
         move.normalize();
-        const speed = running ? RUN_SPEED : MOVE_SPEED;
 
-        // 実際に移動
+        const speed = running ? RUN_SPEED : MOVE_SPEED;
         player.position.addScaledVector(move, speed * delta);
 
-        // 移動方向に体を向ける
+        // 向きを移動方向へ
         const angle = Math.atan2(move.x, move.z);
         const current = player.rotation.y;
-        player.rotation.y = current + (angle - current) * 10 * delta;
+        const smooth = current + (angle - current) * 10 * delta;
+        player.rotation.y = smooth;
     }
 
-    // ========= 重力 & ジャンプ =========
-
-    // 足が地面についているか
-    const groundY = getHeight(player.position.x, player.position.z) + 1;
-
-    // ジャンプ
+    // ============================
+    // ジャンプ & 重力
+    // ============================
     if (Input.keyPressed('Space') && isGrounded) {
         velocityY = JUMP_POWER;
         isGrounded = false;
     }
 
-    // 重力
     velocityY -= GRAVITY * delta;
     player.position.y += velocityY * delta;
 
-    // 地面に着地
+    // ============================
+    // 地形と同期（浮き防止）
+    // ============================
+    const terrainHeight = getHeight(player.position.x, player.position.z);
+    const groundY = terrainHeight + FOOT_OFFSET;
+
     if (player.position.y < groundY) {
         player.position.y = groundY;
         velocityY = 0;
